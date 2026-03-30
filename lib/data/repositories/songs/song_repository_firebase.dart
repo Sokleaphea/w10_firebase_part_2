@@ -6,13 +6,14 @@ import '../../dtos/song_dto.dart';
 import 'song_repository.dart';
 
 class SongRepositoryFirebase extends SongRepository {
-  // final Uri songsUri = Uri.https(
-  //   'w8-practice-53cd2-default-rtdb.asia-southeast1.firebasedatabase.app',
-  //   '/songs.json',
-  // );
   static final Uri songUri = FirebaseConfig.baseUri.replace(path: 'songs.json');
+
+  List<Song>? _cachedSong;
   @override
-  Future<List<Song>> fetchSongs() async {
+  Future<List<Song>> fetchSongs({ bool forceFetch = false }) async {
+    if (_cachedSong != null && !forceFetch) {
+      return _cachedSong!;
+    }
     final http.Response response = await http.get(songUri);
 
     if (response.statusCode == 200) {
@@ -23,7 +24,8 @@ class SongRepositoryFirebase extends SongRepository {
       for (final entry in songJson.entries) {
         result.add(SongDto.fromJson(entry.key, entry.value));
       }
-      return result;
+      _cachedSong = result;
+      return _cachedSong!;
     } else {
       // 2- Throw expcetion if any issue
       throw Exception('Failed to load posts');
@@ -42,11 +44,10 @@ class SongRepositoryFirebase extends SongRepository {
     final http.Response response = await http.patch(
       likeSongUri,
       headers: ({'Content-Type': 'application/json'}),
-      body: json.encode({'like': currentLike + 1})
+      body: json.encode({'likes': currentLike + 1}),
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to like song $songId');
     }
-    
   }
 }
